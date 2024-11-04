@@ -24,6 +24,7 @@ class VertexAiChatModelIT {
                 .topK(0)
                 .topP(0.0)
                 .maxRetries(3)
+                .totalTimeoutDuration(10)
                 .build();
 
         Response<AiMessage> response = vertexAiChatModel.generate(UserMessage.from("hi, how are you doing?"));

@@ -14,6 +14,7 @@ import dev.langchain4j.model.output.TokenUsage;
 import dev.langchain4j.model.vertexai.spi.VertexAiChatModelBuilderFactory;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 
 import static com.google.protobuf.Value.newBuilder;
@@ -61,11 +62,23 @@ public class VertexAiChatModel implements ChatLanguageModel {
                              Integer maxOutputTokens,
                              Integer topK,
                              Double topP,
-                             Integer maxRetries) {
+                             Integer maxRetries,
+                             Integer totalTimeoutDuration) {
         try {
-            this.settings = PredictionServiceSettings.newBuilder()
-                    .setEndpoint(ensureNotBlank(endpoint, "endpoint"))
-                    .build();
+            PredictionServiceSettings.Builder settingsBuilder = PredictionServiceSettings.newBuilder();
+
+            settingsBuilder.predictSettings()
+                .setRetrySettings(
+                    settingsBuilder.predictSettings()
+                        .getRetrySettings()
+                        .toBuilder()
+                        .setTotalTimeoutDuration(Duration.ofSeconds(totalTimeoutDuration))  // Set your desired timeout
+                        .build()
+                );
+
+            this.settings = settingsBuilder
+                .setEndpoint(ensureNotBlank(endpoint, "endpoint"))
+                .build();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -172,6 +185,7 @@ public class VertexAiChatModel implements ChatLanguageModel {
         private Double topP;
 
         private Integer maxRetries;
+        private Integer totalTimeoutDuration = 60;
 
         public Builder endpoint(String endpoint) {
             this.endpoint = endpoint;
@@ -223,6 +237,11 @@ public class VertexAiChatModel implements ChatLanguageModel {
             return this;
         }
 
+        public Builder totalTimeoutDuration(Integer totalTimeoutDuration) {
+            this.totalTimeoutDuration = totalTimeoutDuration;
+            return this;
+        }
+
         public VertexAiChatModel build() {
             return new VertexAiChatModel(
                     endpoint,
@@ -234,7 +253,8 @@ public class VertexAiChatModel implements ChatLanguageModel {
                     maxOutputTokens,
                     topK,
                     topP,
-                    maxRetries);
+                    maxRetries,
+                    totalTimeoutDuration);
         }
     }
 }
